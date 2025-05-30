@@ -11,6 +11,7 @@ import {
   TextInput,
   useTheme,
   IconButton,
+  Divider,
 } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
@@ -25,7 +26,7 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [autoConnect, setAutoConnect] = useState(true);
   const [batterySaver, setBatterySaver] = useState(false);
-  const [nickname, setNickname] = useState('');
+  const [nickname, setNickname] = useState('Usuário');
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
   const theme = useTheme();
@@ -43,191 +44,175 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
   const loadSettings = async () => {
     try {
       const settings = await storage.getSettings();
-      setNotificationsEnabled(settings.notificationsEnabled);
-      setAutoConnect(settings.autoConnect);
-      setBatterySaver(settings.batterySaver);
-      setNickname(settings.nickname || '');
+      if (settings) {
+        setNickname(settings.nickname || 'Usuário');
+        setNotificationsEnabled(settings.notificationsEnabled ?? true);
+        setAutoConnect(settings.autoConnect ?? true);
+        setBatterySaver(settings.batterySaver ?? false);
+      }
     } catch (error) {
-      console.error('Error loading settings:', error);
+      console.error('Erro ao carregar configurações:', error);
     }
   };
 
   const handleSaveSettings = async () => {
     try {
-      const settings = {
+      await storage.saveSettings({
+        nickname,
         notificationsEnabled,
         autoConnect,
         batterySaver,
-        nickname,
-      };
-      console.log('Salvando configurações:', settings);
-      await storage.saveSettings(settings);
+      });
       Alert.alert('Sucesso', 'Configurações salvas com sucesso!');
     } catch (error) {
-      console.error('Error saving settings:', error);
+      console.error('Erro ao salvar configurações:', error);
       Alert.alert('Erro', 'Não foi possível salvar as configurações.');
     }
   };
 
   const handleClearData = async () => {
+    console.log('Attempting to clear all data...');
     try {
       await storage.clearAll();
-      setShowClearDialog(false);
+      console.log('Data cleared successfully.');
       setNickname('Usuário');
       setNotificationsEnabled(true);
       setAutoConnect(true);
       setBatterySaver(false);
       Alert.alert('Sucesso', 'Todos os dados foram apagados com sucesso.');
+      setShowClearDialog(false);
     } catch (error) {
-      console.error('Error clearing data:', error);
-      Alert.alert('Erro', 'Não foi possível apagar os dados. Tente novamente.');
+      console.error('Erro ao apagar dados:', error);
+      Alert.alert('Erro', 'Não foi possível apagar os dados.');
+      setShowClearDialog(false);
+    }
+  };
+
+  const handleSimulateAlert = async () => {
+    try {
+      const alertMessage = {
+        id: Date.now().toString(),
+        title: 'ALERTA DA DEFESA CIVIL',
+        content: 'CUIDADO! EVENTOS EXTREMOS NA SUA REGIÃO',
+        priority: 'alta' as const,
+        location: 'Sua região',
+        sender: 'Defesa Civil',
+        receiver: 'broadcast',
+        timestamp: new Date().toISOString(),
+        status: 'pending' as const,
+      };
+
+      await storage.saveMessage(alertMessage);
+      Alert.alert('Sucesso', 'Alerta simulado enviado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao simular alerta:', error);
+      Alert.alert('Erro', 'Não foi possível simular o alerta.');
     }
   };
 
   return (
     <ScrollView style={styles.container}>
-      <Surface style={styles.content}>
+      <View style={styles.content}>
         <Text style={styles.title}>Configurações</Text>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Perfil</Text>
-          <List.Item
-            title="Seu Nome"
-            description={nickname || 'Não definido'}
-            left={(props) => (
-              <List.Icon {...props} icon="account" color={colors.text.secondary} />
-            )}
-            onPress={() => setIsEditingNickname(true)}
-            right={(props) => (
-              <IconButton
-                {...props}
-                icon="pencil"
-                size={20}
-                onPress={() => setIsEditingNickname(true)}
-              />
-            )}
-          />
-        </View>
+        <Surface style={styles.sectionContainer}>
+          <List.Section>
+            <List.Subheader style={styles.sectionTitle}>Perfil</List.Subheader>
+            <TextInput
+              label="Seu nome"
+              value={nickname}
+              onChangeText={setNickname}
+              style={styles.input}
+              mode="outlined"
+            />
+          </List.Section>
+        </Surface>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notificações</Text>
-          <List.Item
-            title="Notificações"
-            description="Receber alertas de novas mensagens"
-            left={(props) => (
-              <List.Icon
-                {...props}
-                icon="bell"
-                color={colors.text.secondary}
-              />
-            )}
-            right={(props) => (
-              <Switch
-                value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
-                color={colors.primary}
-              />
-            )}
-          />
-        </View>
+        <Surface style={styles.sectionContainer}>
+          <List.Section>
+            <List.Subheader style={styles.sectionTitle}>Notificações</List.Subheader>
+            <List.Item
+              title="Notificações"
+              description="Receber notificações de novas mensagens"
+              right={() => (
+                <Switch
+                  value={notificationsEnabled}
+                  onValueChange={setNotificationsEnabled}
+                  color={colors.primary}
+                />
+              )}
+            />
+          </List.Section>
+        </Surface>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Conexão</Text>
-          <List.Item
-            title="Conexão Automática"
-            description="Conectar automaticamente a dispositivos próximos"
-            left={(props) => (
-              <List.Icon
-                {...props}
-                icon="bluetooth-connect"
-                color={colors.text.secondary}
-              />
-            )}
-            right={(props) => (
-              <Switch
-                value={autoConnect}
-                onValueChange={setAutoConnect}
-                color={colors.primary}
-              />
-            )}
-          />
-          <List.Item
-            title="Modo Economia"
-            description="Reduz o uso de bateria (pode afetar a conectividade)"
-            left={(props) => (
-              <List.Icon
-                {...props}
-                icon="battery"
-                color={colors.text.secondary}
-              />
-            )}
-            right={(props) => (
-              <Switch
-                value={batterySaver}
-                onValueChange={setBatterySaver}
-                color={colors.primary}
-              />
-            )}
-          />
-        </View>
+        <Surface style={styles.sectionContainer}>
+          <List.Section>
+            <List.Subheader style={styles.sectionTitle}>Conexão</List.Subheader>
+            <List.Item
+              title="Conexão automática"
+              description="Conectar automaticamente quando disponível"
+              right={() => (
+                <Switch
+                  value={autoConnect}
+                  onValueChange={setAutoConnect}
+                  color={colors.primary}
+                />
+              )}
+            />
+            <List.Item
+              title="Modo economia de bateria"
+              description="Reduzir o uso de bateria"
+              right={() => (
+                <Switch
+                  value={batterySaver}
+                  onValueChange={setBatterySaver}
+                  color={colors.primary}
+                />
+              )}
+            />
+          </List.Section>
+        </Surface>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Dados</Text>
-          <List.Item
-            title="Apagar Todos os Dados"
-            description="Remove todas as mensagens e configurações"
-            left={(props) => (
-              <List.Icon
-                {...props}
-                icon="delete"
-                color={colors.error}
-              />
-            )}
-            onPress={() => setShowClearDialog(true)}
-          />
-        </View>
+        <Surface style={styles.sectionContainer}>
+          <List.Section>
+            <List.Subheader style={styles.sectionTitle}>Simulação</List.Subheader>
+            <Button
+              mode="contained"
+              onPress={handleSimulateAlert}
+              style={[styles.button, styles.simulateButton]}
+              labelStyle={styles.buttonLabel}
+            >
+              Simular alerta da defesa civil
+            </Button>
+          </List.Section>
+        </Surface>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Simulação</Text>
-          <Button
-            mode="contained"
-            onPress={async () => {
-              try {
-                const alertMessage = {
-                  id: Date.now().toString(),
-                  title: 'ALERTA DA DEFESA CIVIL',
-                  content: 'CUIDADO! EVENTOS EXTREMOS NA SUA REGIÃO',
-                  priority: 'alta',
-                  location: 'Sua região',
-                  sender: 'Defesa Civil',
-                  receiver: 'broadcast',
-                  timestamp: new Date().toISOString(),
-                  status: 'pending',
-                };
-                await storage.saveMessage(alertMessage);
-                Alert.alert('Sucesso', 'Alerta simulado enviado com sucesso!');
-              } catch (error) {
-                console.error('Error sending alert:', error);
-                Alert.alert('Erro', 'Não foi possível enviar o alerta simulado.');
-              }
-            }}
-            style={[styles.button, styles.alertButton]}
-            labelStyle={styles.buttonLabel}
-            icon="alert"
-          >
-            Simular Alerta da Defesa Civil
-          </Button>
-        </View>
+        <Surface style={styles.sectionContainer}>
+          <List.Section>
+            <List.Subheader style={styles.sectionTitle}>Dados</List.Subheader>
+            <Button
+              mode="contained"
+              onPress={() => {
+                console.log('Botão Apagar todos os dados pressionado');
+                handleClearData();
+              }}
+              style={[styles.button, styles.clearButton]}
+              labelStyle={styles.buttonLabel}
+            >
+              Apagar todos os dados
+            </Button>
+          </List.Section>
+        </Surface>
 
         <Button
           mode="contained"
           onPress={handleSaveSettings}
-          style={styles.saveButton}
+          style={[styles.button, styles.saveButton]}
           labelStyle={styles.buttonLabel}
         >
           Salvar Configurações
         </Button>
-      </Surface>
+      </View>
 
       <Portal>
         <Dialog
@@ -269,6 +254,7 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         <Dialog
           visible={showClearDialog}
           onDismiss={() => setShowClearDialog(false)}
+          style={styles.dialog}
         >
           <Dialog.Title>Atenção</Dialog.Title>
           <Dialog.Content>
@@ -306,33 +292,48 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     marginBottom: spacing.xl,
   },
-  section: {
-    marginBottom: spacing.xl,
+  sectionContainer: {
+    marginBottom: spacing.md,
+    borderRadius: layout.borderRadius.lg,
+    backgroundColor: colors.surface,
+    ...layout.shadow.small,
+    overflow: 'hidden',
   },
   sectionTitle: {
+    fontFamily: typography.fontFamily.medium,
     fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.medium,
     color: colors.text.primary,
-    marginBottom: spacing.md,
-  },
-  saveButton: {
-    marginTop: spacing.md,
-  },
-  buttonLabel: {
-    fontSize: typography.fontSize.md,
-    fontFamily: typography.fontFamily.medium,
-  },
-  dialog: {
-    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
   },
   input: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
     backgroundColor: colors.surface,
   },
   button: {
+    height: layout.button.height,
+    borderRadius: layout.borderRadius.lg,
     marginBottom: spacing.md,
+    marginHorizontal: spacing.lg,
   },
-  alertButton: {
+  buttonLabel: {
+    fontFamily: typography.fontFamily.medium,
+    fontSize: typography.fontSize.lg,
+  },
+  saveButton: {
+    backgroundColor: colors.primary,
+    marginTop: spacing.xl,
+    marginHorizontal: spacing.md,
+  },
+  clearButton: {
     backgroundColor: colors.error,
+  },
+  simulateButton: {
+    backgroundColor: colors.warning,
+  },
+  dialog: {
+    backgroundColor: colors.surface,
   },
 });
 

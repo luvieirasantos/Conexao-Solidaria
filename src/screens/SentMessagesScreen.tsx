@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { Text, Surface, ActivityIndicator, FAB } from 'react-native-paper';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { colors, spacing, typography, layout } from '../styles/theme';
@@ -8,11 +9,10 @@ import { storage } from '../services/storage';
 import { Message } from '../types';
 import MessageCard from '../components/MessageCard';
 
-type Props = {
-    navigation: NativeStackNavigationProp<RootStackParamList, 'SentMessages'>;
-};
+type SentMessagesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SentMessages'>;
 
-const SentMessagesScreen: React.FC<Props> = ({ navigation }) => {
+const SentMessagesScreen: React.FC = () => {
+    const navigation = useNavigation<SentMessagesScreenNavigationProp>();
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -31,13 +31,11 @@ const SentMessagesScreen: React.FC<Props> = ({ navigation }) => {
         }
     }, []);
 
-    useEffect(() => {
-        const unsubscribe = navigation.addListener('focus', () => {
+    useFocusEffect(
+        useCallback(() => {
             loadMessages();
-        });
-
-        return unsubscribe;
-    }, [navigation, loadMessages]);
+        }, [loadMessages])
+    );
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
@@ -45,7 +43,7 @@ const SentMessagesScreen: React.FC<Props> = ({ navigation }) => {
     }, [loadMessages]);
 
     const handleMessagePress = (message: Message) => {
-        navigation.navigate('MessageDetails', { messageId: message.id });
+        navigation.navigate('MessageDetails', { message });
     };
 
     if (isLoading) {

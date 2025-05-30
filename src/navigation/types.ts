@@ -1,3 +1,5 @@
+import { Message } from '../types';
+
 export type RootStackParamList = {
   Welcome: undefined;
   Main: undefined;
@@ -5,5 +7,5 @@ export type RootStackParamList = {
   SentMessages: undefined;
   Settings: undefined;
   ConnectionStatus: undefined;
-  MessageDetails: { messageId: string };
+  MessageDetails: { message: Message };
 }; 

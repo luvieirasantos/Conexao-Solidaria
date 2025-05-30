@@ -1,46 +1,85 @@
 import React from 'react';
-import { Provider as PaperProvider, DefaultTheme as PaperDefaultTheme } from 'react-native-paper';
-import { NavigationContainer, DefaultTheme as NavigationDefaultTheme } from '@react-navigation/native';
-import { Navigation } from './src/navigation';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Provider as PaperProvider } from 'react-native-paper';
+import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_700Bold } from '@expo-google-fonts/poppins';
+import { RootStackParamList } from './src/navigation/types';
 import { colors } from './src/styles/theme';
 
-const paperTheme = {
-  ...PaperDefaultTheme,
-  colors: {
-    ...PaperDefaultTheme.colors,
-    ...colors,
-    background: colors.background,
-    surface: colors.surface,
-    primary: colors.primary,
-    accent: colors.accent,
-    error: colors.error,
-    text: colors.text.primary,
-    notification: colors.accent,
-  },
-};
+// Screens
+import WelcomeScreen from './src/screens/WelcomeScreen';
+import MainScreen from './src/screens/MainScreen';
+import SendMessageScreen from './src/screens/SendMessageScreen';
+import SentMessagesScreen from './src/screens/SentMessagesScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
+import ConnectionStatusScreen from './src/screens/ConnectionStatusScreen';
+import MessageDetailsScreen from './src/screens/MessageDetailsScreen';
 
-const navigationTheme = {
-  ...NavigationDefaultTheme,
-  colors: {
-    ...NavigationDefaultTheme.colors,
-    ...colors,
-    background: colors.background,
-    card: colors.surface,
-    text: colors.text.primary,
-    border: colors.secondary || NavigationDefaultTheme.colors.border,
-    notification: colors.accent,
-    primary: colors.primary,
-  },
-};
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
-const App = () => {
+export default function App() {
+  const [fontsLoaded] = useFonts({
+    'Poppins-Regular': Poppins_400Regular,
+    'Poppins-Medium': Poppins_500Medium,
+    'Poppins-Bold': Poppins_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
-    <PaperProvider theme={paperTheme}>
-      <NavigationContainer theme={navigationTheme}>
-        <Navigation />
+    <PaperProvider>
+      <NavigationContainer>
+        <Stack.Navigator
+          initialRouteName="Welcome"
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: colors.primary,
+            },
+            headerTintColor: colors.text.inverse,
+            headerTitleStyle: {
+              fontFamily: 'Poppins-Medium',
+            },
+          }}
+        >
+          <Stack.Screen
+            name="Welcome"
+            component={WelcomeScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Main"
+            component={MainScreen}
+            options={{ title: 'Mensagens' }}
+          />
+          <Stack.Screen
+            name="SendMessage"
+            component={SendMessageScreen}
+            options={{ title: 'Nova Mensagem' }}
+          />
+          <Stack.Screen
+            name="SentMessages"
+            component={SentMessagesScreen}
+            options={{ title: 'Mensagens Enviadas' }}
+          />
+          <Stack.Screen
+            name="Settings"
+            component={SettingsScreen}
+            options={{ title: 'Configurações' }}
+          />
+          <Stack.Screen
+            name="ConnectionStatus"
+            component={ConnectionStatusScreen}
+            options={{ title: 'Status da Conexão' }}
+          />
+          <Stack.Screen
+            name="MessageDetails"
+            component={MessageDetailsScreen}
+            options={{ title: 'Detalhes da Mensagem' }}
+          />
+        </Stack.Navigator>
       </NavigationContainer>
     </PaperProvider>
   );
-};
-
-export default App; 
+} 

@@ -1,76 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Share } from 'react-native';
-import {
-  Text,
-  Surface,
-  IconButton,
-  Button,
-  Divider,
-  useTheme,
-} from 'react-native-paper';
+import React from 'react';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Text, Surface, IconButton } from 'react-native-paper';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
 import { Message } from '../types';
 import { colors, spacing, typography, layout } from '../styles/theme';
-import { storage } from '../services/storage';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
-type Props = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'MessageDetails'>;
-  route: RouteProp<RootStackParamList, 'MessageDetails'>;
-};
+type MessageDetailsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MessageDetails'>;
+type MessageDetailsScreenRouteProp = RouteProp<RootStackParamList, 'MessageDetails'>;
 
-const MessageDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
-  const [message, setMessage] = useState<Message | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const theme = useTheme();
+export default function MessageDetailsScreen() {
+  const navigation = useNavigation<MessageDetailsScreenNavigationProp>();
+  const route = useRoute<MessageDetailsScreenRouteProp>();
+  const { message } = route.params;
 
-  useEffect(() => {
-    loadMessage();
-  }, [route.params.messageId]);
-
-  const loadMessage = async () => {
-    try {
-      const allMessages = await storage.getMessages();
-      const foundMessage = allMessages.find(
-        (msg) => msg.id === route.params.messageId
-      );
-      if (foundMessage) {
-        setMessage(foundMessage);
-        // Marcar como lida
-        if (foundMessage.status === 'new') {
-          const updatedMessage = { ...foundMessage, status: 'read' };
-          await storage.updateMessage(updatedMessage);
-          setMessage(updatedMessage);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading message:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleShare = async () => {
-    if (!message) return;
-
-    try {
-      await Share.share({
-        message: `${message.title}\n\n${message.content}\n\nPrioridade: ${message.priority}\n${
-          message.location ? `Localização: ${message.location}\n` : ''
-        }Enviado por: ${message.sender}\nData: ${new Date(
-          message.timestamp
-        ).toLocaleString()}`,
-      });
-    } catch (error) {
-      console.error('Error sharing message:', error);
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
+  const getPriorityColor = (priority: Message['priority']) => {
+    switch (priority) {
       case 'alta':
         return colors.error;
       case 'média':
@@ -78,120 +24,84 @@ const MessageDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       case 'baixa':
         return colors.success;
       default:
-        return colors.secondary;
+        return colors.text.secondary;
     }
   };
 
-  const getPriorityIcon = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case 'alta':
-        return 'alert-circle';
-      case 'média':
-        return 'alert';
-      case 'baixa':
-        return 'information';
-      default:
-        return 'message';
-    }
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
-
-  if (isLoading || !message) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.loadingText}>Carregando mensagem...</Text>
-      </View>
-    );
-  }
 
   return (
     <ScrollView style={styles.container}>
       <Surface style={styles.content}>
         <View style={styles.header}>
-          <View style={styles.titleContainer}>
-            <IconButton
-              icon={getPriorityIcon(message.priority)}
-              size={24}
-              iconColor={getPriorityColor(message.priority)}
-              style={styles.priorityIcon}
-            />
-            <Text style={styles.title}>{message.title}</Text>
-          </View>
+          <Text style={styles.title}>{message.title}</Text>
           <IconButton
-            icon="share-variant"
+            icon="close"
             size={24}
-            onPress={handleShare}
-            iconColor={colors.text.secondary}
+            onPress={() => navigation.goBack()}
+            style={styles.closeButton}
           />
         </View>
 
-        <Divider style={styles.divider} />
-
-        <Text style={styles.content}>{message.content}</Text>
-
-        <View style={styles.detailsContainer}>
-          <View style={styles.detailRow}>
-            <IconButton
-              icon="account"
-              size={20}
-              iconColor={colors.text.secondary}
-              style={styles.detailIcon}
-            />
-            <Text style={styles.detailLabel}>Remetente:</Text>
-            <Text style={styles.detailValue}>{message.sender}</Text>
+        <View style={styles.infoContainer}>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Prioridade:</Text>
+            <Text
+              style={[
+                styles.value,
+                { color: getPriorityColor(message.priority) },
+              ]}
+            >
+              {message.priority.toUpperCase()}
+            </Text>
           </View>
 
           {message.location && (
-            <View style={styles.detailRow}>
-              <IconButton
-                icon="map-marker"
-                size={20}
-                iconColor={colors.text.secondary}
-                style={styles.detailIcon}
-              />
-              <Text style={styles.detailLabel}>Localização:</Text>
-              <Text style={styles.detailValue}>{message.location}</Text>
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Localização:</Text>
+              <Text style={styles.value}>{message.location}</Text>
             </View>
           )}
 
-          <View style={styles.detailRow}>
-            <IconButton
-              icon="clock-outline"
-              size={20}
-              iconColor={colors.text.secondary}
-              style={styles.detailIcon}
-            />
-            <Text style={styles.detailLabel}>Enviado:</Text>
-            <Text style={styles.detailValue}>
-              {formatDistanceToNow(new Date(message.timestamp), {
-                addSuffix: true,
-                locale: ptBR,
-              })}
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Remetente:</Text>
+            <Text style={styles.value}>{message.sender}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Data:</Text>
+            <Text style={styles.value}>{formatDate(message.timestamp)}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Status:</Text>
+            <Text
+              style={[
+                styles.value,
+                { color: colors.status[message.status] },
+              ]}
+            >
+              {message.status.toUpperCase()}
             </Text>
           </View>
         </View>
 
-        <View style={styles.buttonContainer}>
-          <Button
-            mode="outlined"
-            onPress={() => navigation.goBack()}
-            style={styles.button}
-            labelStyle={styles.buttonLabel}
-          >
-            Voltar
-          </Button>
-          <Button
-            mode="contained"
-            onPress={() => navigation.navigate('SendMessage')}
-            style={[styles.button, styles.replyButton]}
-            labelStyle={styles.buttonLabel}
-          >
-            Responder
-          </Button>
+        <View style={styles.messageContainer}>
+          <Text style={styles.messageText}>{message.content}</Text>
         </View>
       </Surface>
     </ScrollView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -208,80 +118,46 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.md,
-  },
-  titleContainer: {
-    flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
-  },
-  priorityIcon: {
-    margin: 0,
-    marginRight: spacing.xs,
+    marginBottom: spacing.lg,
   },
   title: {
     flex: 1,
-    fontSize: typography.fontSize.xl,
     fontFamily: typography.fontFamily.bold,
+    fontSize: typography.fontSize.xl,
     color: colors.text.primary,
   },
-  divider: {
-    marginVertical: spacing.md,
+  closeButton: {
+    margin: 0,
   },
-  content: {
-    fontSize: typography.fontSize.md,
-    color: colors.text.primary,
-    lineHeight: 24,
-    marginBottom: spacing.lg,
+  infoContainer: {
+    marginBottom: spacing.xl,
   },
-  detailsContainer: {
-    backgroundColor: colors.background,
-    borderRadius: layout.borderRadius.md,
-    padding: spacing.md,
-  },
-  detailRow: {
+  infoRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: spacing.sm,
   },
-  detailIcon: {
-    margin: 0,
-    marginRight: spacing.xs,
-  },
-  detailLabel: {
-    fontSize: typography.fontSize.sm,
+  label: {
+    fontFamily: typography.fontFamily.medium,
+    fontSize: typography.fontSize.md,
     color: colors.text.secondary,
-    marginRight: spacing.xs,
+    width: 100,
   },
-  detailValue: {
+  value: {
     flex: 1,
-    fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamily.regular,
+    fontSize: typography.fontSize.md,
     color: colors.text.primary,
-    fontFamily: typography.fontFamily.medium,
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.lg,
+  messageContainer: {
+    backgroundColor: colors.background,
+    padding: spacing.lg,
+    borderRadius: layout.borderRadius.md,
   },
-  button: {
-    flex: 1,
-    marginHorizontal: spacing.xs,
+  messageText: {
+    fontFamily: typography.fontFamily.regular,
+    fontSize: typography.fontSize.lg,
+    color: colors.text.primary,
+    lineHeight: typography.lineHeight.lg,
   },
-  replyButton: {
-    backgroundColor: colors.primary,
-  },
-  buttonLabel: {
-    fontSize: typography.fontSize.md,
-    fontFamily: typography.fontFamily.medium,
-  },
-  loadingText: {
-    fontSize: typography.fontSize.md,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    marginTop: spacing.xl,
-  },
-});
-
-export default MessageDetailsScreen; 
+}); 

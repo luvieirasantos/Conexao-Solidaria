@@ -22,7 +22,7 @@ type Props = {
 const SendMessageScreen: React.FC<Props> = ({ navigation }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [priority, setPriority] = useState('média');
+  const [priority, setPriority] = useState<'baixa' | 'média' | 'alta'>('média');
   const [location, setLocation] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
@@ -49,6 +49,7 @@ const SendMessageScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     try {
+      setIsSending(true);
       const settings = await storage.getSettings();
       const message: Message = {
         id: Date.now().toString(),
@@ -77,6 +78,8 @@ const SendMessageScreen: React.FC<Props> = ({ navigation }) => {
     } catch (error) {
       console.error('Error sending message:', error);
       Alert.alert('Erro', 'Não foi possível enviar a mensagem. Tente novamente.');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -217,10 +220,10 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    padding: spacing.md,
+    padding: layout.screenPadding,
   },
   formContainer: {
-    padding: spacing.lg,
+    padding: layout.cardPadding,
     borderRadius: layout.borderRadius.lg,
     backgroundColor: colors.surface,
     ...layout.shadow.medium,
@@ -237,13 +240,15 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: colors.surface,
+    height: layout.inputHeight,
   },
   priorityContainer: {
     marginBottom: spacing.lg,
   },
   priorityLabel: {
     fontSize: typography.fontSize.md,
-    color: colors.text.secondary,
+    fontFamily: typography.fontFamily.medium,
+    color: colors.text.primary,
     marginBottom: spacing.sm,
   },
   buttonContainer: {
@@ -254,6 +259,8 @@ const styles = StyleSheet.create({
   button: {
     flex: 1,
     marginHorizontal: spacing.xs,
+    height: layout.buttonHeight,
+    borderRadius: layout.borderRadius.md,
   },
   sendButton: {
     backgroundColor: colors.primary,
