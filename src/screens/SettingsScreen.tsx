@@ -187,6 +187,38 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
           />
         </View>
 
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Simulação</Text>
+          <Button
+            mode="contained"
+            onPress={async () => {
+              try {
+                const alertMessage = {
+                  id: Date.now().toString(),
+                  title: 'ALERTA DA DEFESA CIVIL',
+                  content: 'CUIDADO! EVENTOS EXTREMOS NA SUA REGIÃO',
+                  priority: 'alta',
+                  location: 'Sua região',
+                  sender: 'Defesa Civil',
+                  receiver: 'broadcast',
+                  timestamp: new Date().toISOString(),
+                  status: 'pending',
+                };
+                await storage.saveMessage(alertMessage);
+                Alert.alert('Sucesso', 'Alerta simulado enviado com sucesso!');
+              } catch (error) {
+                console.error('Error sending alert:', error);
+                Alert.alert('Erro', 'Não foi possível enviar o alerta simulado.');
+              }
+            }}
+            style={[styles.button, styles.alertButton]}
+            labelStyle={styles.buttonLabel}
+            icon="alert"
+          >
+            Simular Alerta da Defesa Civil
+          </Button>
+        </View>
+
         <Button
           mode="contained"
           onPress={handleSaveSettings}
@@ -295,6 +327,12 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: colors.surface,
+  },
+  button: {
+    marginBottom: spacing.md,
+  },
+  alertButton: {
+    backgroundColor: colors.error,
   },
 });
 

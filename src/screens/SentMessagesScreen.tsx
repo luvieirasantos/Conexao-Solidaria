@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
-import { Text, Surface, ActivityIndicator } from 'react-native-paper';
+import { Text, Surface, ActivityIndicator, FAB } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { colors, spacing, typography, layout } from '../styles/theme';
@@ -32,8 +32,12 @@ const SentMessagesScreen: React.FC<Props> = ({ navigation }) => {
     }, []);
 
     useEffect(() => {
-        loadMessages();
-    }, [loadMessages]);
+        const unsubscribe = navigation.addListener('focus', () => {
+            loadMessages();
+        });
+
+        return unsubscribe;
+    }, [navigation, loadMessages]);
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
@@ -52,39 +56,43 @@ const SentMessagesScreen: React.FC<Props> = ({ navigation }) => {
         );
     }
 
-    if (messages.length === 0) {
-        return (
-            <View style={styles.emptyContainer}>
-                <Surface style={styles.emptyCard}>
-                    <Text style={styles.emptyTitle}>Nenhuma mensagem enviada</Text>
-                    <Text style={styles.emptyText}>
-                        Você ainda não enviou nenhuma mensagem. Use o botão + para criar uma nova mensagem.
-                    </Text>
-                </Surface>
-            </View>
-        );
-    }
-
     return (
         <View style={styles.container}>
-            <FlatList
-                data={messages}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                    <MessageCard
-                        message={item}
-                        onPress={() => handleMessagePress(item)}
-                    />
-                )}
-                contentContainerStyle={styles.listContent}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={onRefresh}
-                        colors={[colors.primary]}
-                        tintColor={colors.primary}
-                    />
-                }
+            {messages.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                    <Surface style={styles.emptyCard}>
+                        <Text style={styles.emptyTitle}>Nenhuma mensagem enviada</Text>
+                        <Text style={styles.emptyText}>
+                            Você ainda não enviou nenhuma mensagem. Use o botão + para criar uma nova mensagem.
+                        </Text>
+                    </Surface>
+                </View>
+            ) : (
+                <FlatList
+                    data={messages}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                        <MessageCard
+                            message={item}
+                            onPress={() => handleMessagePress(item)}
+                        />
+                    )}
+                    contentContainerStyle={styles.listContent}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            colors={[colors.primary]}
+                            tintColor={colors.primary}
+                        />
+                    }
+                />
+            )}
+            <FAB
+                icon="plus"
+                style={styles.fab}
+                onPress={() => navigation.navigate('SendMessage')}
+                color={colors.text.inverse}
             />
         </View>
     );
@@ -127,6 +135,13 @@ const styles = StyleSheet.create({
     },
     listContent: {
         padding: spacing.md,
+    },
+    fab: {
+        position: 'absolute',
+        margin: spacing.md,
+        right: 0,
+        bottom: 0,
+        backgroundColor: colors.primary,
     },
 });
 

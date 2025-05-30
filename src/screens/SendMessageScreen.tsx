@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import {
   TextInput,
   Button,
@@ -44,21 +44,19 @@ const SendMessageScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleSend = async () => {
     if (!title.trim() || !content.trim()) {
-      setError('Por favor, preencha todos os campos obrigatórios');
+      Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios.');
       return;
     }
 
-    setIsSending(true);
-    setError('');
-
     try {
+      const settings = await storage.getSettings();
       const message: Message = {
         id: Date.now().toString(),
-        title: title.trim(),
-        content: content.trim(),
+        title,
+        content,
         priority,
-        location: location.trim(),
-        sender: senderName,
+        location,
+        sender: settings.nickname || 'Usuário',
         receiver: 'broadcast',
         timestamp: new Date().toISOString(),
         status: 'pending',
@@ -67,19 +65,18 @@ const SendMessageScreen: React.FC<Props> = ({ navigation }) => {
       console.log('Enviando mensagem:', message);
       await storage.saveMessage(message);
       console.log('Mensagem salva com sucesso');
-      
+
       // Limpar os campos após enviar
       setTitle('');
       setContent('');
       setLocation('');
       setPriority('média');
-      
-      navigation.navigate('SentMessages');
+
+      Alert.alert('Sucesso', 'Mensagem enviada com sucesso!');
+      navigation.goBack();
     } catch (error) {
       console.error('Error sending message:', error);
-      setError('Erro ao enviar mensagem. Tente novamente.');
-    } finally {
-      setIsSending(false);
+      Alert.alert('Erro', 'Não foi possível enviar a mensagem. Tente novamente.');
     }
   };
 
