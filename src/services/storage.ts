@@ -80,11 +80,13 @@ class StorageService {
   // Clear all data
   async clearAll(): Promise<void> {
     try {
+      console.log('Limpando todos os dados do storage...');
       await AsyncStorage.multiRemove([
         STORAGE_KEYS.USER,
         STORAGE_KEYS.MESSAGES,
         STORAGE_KEYS.SETTINGS,
       ]);
+      console.log('Todos os dados foram limpos com sucesso');
     } catch (error) {
       console.error('Error clearing storage:', error);
       throw error;

@@ -71,13 +71,16 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleClearData = async () => {
     try {
-      await storage.clearAllData();
+      await storage.clearAll();
       setShowClearDialog(false);
-      Alert.alert('Sucesso', 'Todos os dados foram apagados.');
-      navigation.replace('Welcome');
+      setNickname('Usuário');
+      setNotificationsEnabled(true);
+      setAutoConnect(true);
+      setBatterySaver(false);
+      Alert.alert('Sucesso', 'Todos os dados foram apagados com sucesso.');
     } catch (error) {
       console.error('Error clearing data:', error);
-      Alert.alert('Erro', 'Não foi possível apagar os dados.');
+      Alert.alert('Erro', 'Não foi possível apagar os dados. Tente novamente.');
     }
   };
 
