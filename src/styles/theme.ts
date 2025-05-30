@@ -1,27 +1,36 @@
-import { DefaultTheme } from 'react-native-paper';
+import { Dimensions } from 'react-native';
+
+const { width, height } = Dimensions.get('window');
 
 export const colors = {
-  primary: '#0F4C81', // Azul Petróleo
-  success: '#C4E1C1', // Verde Claro
-  white: '#FFFFFF',   // Branco
-  background: '#F6F6F6', // Cinza Claro
-  text: '#3A3A3A',    // Cinza Escuro
-  error: '#FF6B6B',   // Vermelho para erros
-  warning: '#FFD93D', // Amarelo para avisos
-  pending: '#FFA500', // Laranja para pendente
-};
-
-export const theme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    primary: colors.primary,
-    background: colors.background,
-    surface: colors.white,
-    text: colors.text,
-    error: colors.error,
+  // Cores principais
+  primary: '#FF4B4B', // Vermelho de emergência
+  secondary: '#4A90E2', // Azul para elementos secundários
+  accent: '#FFD700', // Dourado para elementos de destaque
+  
+  // Cores de fundo
+  background: '#F5F5F5',
+  surface: '#FFFFFF',
+  error: '#FF3B30',
+  success: '#34C759',
+  warning: '#FF9500',
+  
+  // Cores de texto
+  text: {
+    primary: '#1A1A1A',
+    secondary: '#666666',
+    disabled: '#999999',
+    inverse: '#FFFFFF',
   },
-  roundness: 12,
+  
+  // Cores de status
+  status: {
+    online: '#34C759',
+    offline: '#FF3B30',
+    connecting: '#FF9500',
+  },
+  white: '#FFFFFF',
+  notification: '#FFD700',
 };
 
 export const spacing = {
@@ -30,23 +39,69 @@ export const spacing = {
   md: 16,
   lg: 24,
   xl: 32,
+  xxl: 48,
 };
 
 export const typography = {
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  fontFamily: {
+    regular: 'System',
+    medium: 'System',
+    bold: 'System',
   },
-  subtitle: {
-    fontSize: 18,
-    fontWeight: '600',
+  fontSize: {
+    xs: 12,
+    sm: 14,
+    md: 16,
+    lg: 18,
+    xl: 20,
+    xxl: 24,
+    xxxl: 32,
   },
-  body: {
-    fontSize: 16,
-    fontWeight: 'normal',
+};
+
+export const layout = {
+  screenWidth: width,
+  screenHeight: height,
+  borderRadius: {
+    sm: 4,
+    md: 8,
+    lg: 12,
+    xl: 16,
+    round: 9999,
   },
-  caption: {
-    fontSize: 14,
-    fontWeight: 'normal',
+  shadow: {
+    small: {
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+      elevation: 2,
+    },
+    medium: {
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      shadowOpacity: 0.30,
+      shadowRadius: 4.65,
+      elevation: 4,
+    },
+  },
+};
+
+export const animation = {
+  duration: {
+    fast: 200,
+    normal: 300,
+    slow: 500,
+  },
+  easing: {
+    easeInOut: 'ease-in-out',
+    easeOut: 'ease-out',
+    easeIn: 'ease-in',
   },
 }; 

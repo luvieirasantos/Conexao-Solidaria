@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
-import { FAB, IconButton } from 'react-native-paper';
+import { View, StyleSheet, FlatList, RefreshControl, StatusBar } from 'react-native';
+import { FAB, Text, Surface, IconButton, useTheme } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { Message } from '../types';
-import { colors, spacing } from '../styles/theme';
+import { colors, spacing, typography, layout } from '../styles/theme';
 import { storage } from '../services/storage';
 import MessageCard from '../components/MessageCard';
 
@@ -15,13 +15,13 @@ type Props = {
 const MainScreen: React.FC<Props> = ({ navigation }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const theme = useTheme();
 
   const loadMessages = useCallback(async () => {
     try {
       const allMessages = await storage.getMessages();
-      // Filtrar apenas mensagens recebidas (não enviadas pelo usuário atual)
       const receivedMessages = allMessages.filter(
-        (msg) => msg.receiver === 'current_user' // TODO: Substituir pelo ID do usuário atual
+        (msg) => msg.receiver === 'current_user'
       );
       setMessages(receivedMessages);
     } catch (error) {
@@ -43,8 +43,40 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('MessageDetails', { messageId });
   };
 
+  const renderEmptyList = () => (
+    <View style={styles.emptyContainer}>
+      <IconButton
+        icon="message-off"
+        size={64}
+        iconColor={colors.text.secondary}
+        style={styles.emptyIcon}
+      />
+      <Text style={styles.emptyTitle}>Nenhuma mensagem</Text>
+      <Text style={styles.emptySubtitle}>
+        Quando você receber mensagens via Bluetooth, elas aparecerão aqui
+      </Text>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
+      <StatusBar
+        backgroundColor={colors.primary}
+        barStyle="light-content"
+      />
+      
+      <Surface style={styles.header}>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Mensagens</Text>
+          <IconButton
+            icon="bluetooth"
+            size={24}
+            iconColor={colors.text.inverse}
+            onPress={() => navigation.navigate('ConnectionStatus')}
+          />
+        </View>
+      </Surface>
+
       <FlatList
         data={messages}
         keyExtractor={(item) => item.id}
@@ -56,8 +88,14 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
         )}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
         }
+        ListEmptyComponent={renderEmptyList}
       />
 
       <FAB
@@ -65,6 +103,7 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.fab}
         onPress={() => navigation.navigate('SendMessage')}
         label="Nova Mensagem"
+        color={colors.text.inverse}
       />
     </View>
   );
@@ -75,8 +114,49 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  header: {
+    backgroundColor: colors.primary,
+    elevation: 4,
+    ...layout.shadow.medium,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingTop: StatusBar.currentHeight + spacing.sm,
+  },
+  headerTitle: {
+    fontSize: typography.fontSize.xl,
+    fontFamily: typography.fontFamily.bold,
+    color: colors.text.inverse,
+  },
   listContent: {
     padding: spacing.md,
+    flexGrow: 1,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  emptyIcon: {
+    marginBottom: spacing.md,
+  },
+  emptyTitle: {
+    fontSize: typography.fontSize.lg,
+    fontFamily: typography.fontFamily.medium,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: typography.fontSize.md,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   fab: {
     position: 'absolute',

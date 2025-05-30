@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
+import { Text, Surface, ActivityIndicator } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
-import { Message } from '../types';
-import { colors, spacing } from '../styles/theme';
+import { colors, spacing, typography, layout } from '../styles/theme';
 import { storage } from '../services/storage';
+import { Message } from '../types';
 import MessageCard from '../components/MessageCard';
 
 type Props = {
@@ -13,17 +14,20 @@ type Props = {
 
 const SentMessagesScreen: React.FC<Props> = ({ navigation }) => {
     const [messages, setMessages] = useState<Message[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
     const loadMessages = useCallback(async () => {
         try {
+            setIsLoading(true);
             const allMessages = await storage.getMessages();
-            // Filtrar apenas mensagens enviadas pelo usuário atual
-            const sentMessages = allMessages.filter(
-                (msg) => msg.sender === 'current_user' // TODO: Substituir pelo ID do usuário atual
-            );
-            setMessages(sentMessages);
+            console.log('Mensagens carregadas:', allMessages);
+            setMessages(allMessages);
         } catch (error) {
             console.error('Error loading messages:', error);
+        } finally {
+            setIsLoading(false);
+            setRefreshing(false);
         }
     }, []);
 
@@ -31,40 +35,35 @@ const SentMessagesScreen: React.FC<Props> = ({ navigation }) => {
         loadMessages();
     }, [loadMessages]);
 
-    const handleEdit = (message: Message) => {
-        // TODO: Implementar edição de mensagem
-        Alert.alert('Em desenvolvimento', 'Funcionalidade em desenvolvimento');
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        loadMessages();
+    }, [loadMessages]);
+
+    const handleMessagePress = (message: Message) => {
+        navigation.navigate('MessageDetails', { messageId: message.id });
     };
 
-    const handleDelete = async (messageId: string) => {
-        Alert.alert(
-            'Confirmar exclusão',
-            'Tem certeza que deseja excluir esta mensagem?',
-            [
-                {
-                    text: 'Cancelar',
-                    style: 'cancel',
-                },
-                {
-                    text: 'Excluir',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            const allMessages = await storage.getMessages();
-                            const updatedMessages = allMessages.filter(
-                                (msg) => msg.id !== messageId
-                            );
-                            await storage.saveMessages(updatedMessages);
-                            loadMessages();
-                        } catch (error) {
-                            console.error('Error deleting message:', error);
-                            Alert.alert('Erro', 'Não foi possível excluir a mensagem');
-                        }
-                    },
-                },
-            ]
+    if (isLoading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+            </View>
         );
-    };
+    }
+
+    if (messages.length === 0) {
+        return (
+            <View style={styles.emptyContainer}>
+                <Surface style={styles.emptyCard}>
+                    <Text style={styles.emptyTitle}>Nenhuma mensagem enviada</Text>
+                    <Text style={styles.emptyText}>
+                        Você ainda não enviou nenhuma mensagem. Use o botão + para criar uma nova mensagem.
+                    </Text>
+                </Surface>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -74,12 +73,18 @@ const SentMessagesScreen: React.FC<Props> = ({ navigation }) => {
                 renderItem={({ item }) => (
                     <MessageCard
                         message={item}
-                        showActions
-                        onEdit={() => handleEdit(item)}
-                        onDelete={() => handleDelete(item.id)}
+                        onPress={() => handleMessagePress(item)}
                     />
                 )}
                 contentContainerStyle={styles.listContent}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
+                    />
+                }
             />
         </View>
     );
@@ -89,6 +94,36 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: colors.background,
+    },
+    emptyContainer: {
+        flex: 1,
+        padding: spacing.lg,
+        backgroundColor: colors.background,
+    },
+    emptyCard: {
+        padding: spacing.lg,
+        borderRadius: layout.borderRadius.lg,
+        backgroundColor: colors.surface,
+        ...layout.shadow.medium,
+    },
+    emptyTitle: {
+        fontSize: typography.fontSize.xl,
+        fontFamily: typography.fontFamily.bold,
+        color: colors.text.primary,
+        marginBottom: spacing.md,
+        textAlign: 'center',
+    },
+    emptyText: {
+        fontSize: typography.fontSize.md,
+        color: colors.text.secondary,
+        textAlign: 'center',
+        lineHeight: 24,
     },
     listContent: {
         padding: spacing.md,

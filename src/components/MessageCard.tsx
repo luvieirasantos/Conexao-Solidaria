@@ -1,107 +1,111 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Card, Text, IconButton } from 'react-native-paper';
-import { Message, MessageStatus } from '../types';
-import { colors, spacing, typography } from '../styles/theme';
+import { Text, Surface, IconButton } from 'react-native-paper';
+import { Message } from '../types';
+import { colors, spacing, typography, layout } from '../styles/theme';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-interface Props {
+type Props = {
   message: Message;
-  onPress?: () => void;
-  onEdit?: () => void;
-  onDelete?: () => void;
-  showActions?: boolean;
-}
-
-const getStatusColor = (status: MessageStatus) => {
-  switch (status) {
-    case 'new':
-      return colors.primary;
-    case 'read':
-      return colors.success;
-    case 'pending':
-      return colors.pending;
-    case 'delivered':
-      return colors.success;
-    case 'synced':
-      return colors.success;
-    default:
-      return colors.text;
-  }
+  onPress: () => void;
 };
 
-const getStatusText = (status: MessageStatus) => {
-  switch (status) {
-    case 'new':
-      return 'Novo';
-    case 'read':
-      return 'Lido';
-    case 'pending':
-      return 'Pendente';
-    case 'delivered':
-      return 'Entregue';
-    case 'synced':
-      return 'Sincronizado';
-    default:
-      return status;
-  }
-};
+const MessageCard: React.FC<Props> = ({ message, onPress }) => {
+  const getPriorityColor = (priority: string) => {
+    switch (priority.toLowerCase()) {
+      case 'alta':
+        return colors.error;
+      case 'média':
+        return colors.warning;
+      case 'baixa':
+        return colors.success;
+      default:
+        return colors.secondary;
+    }
+  };
 
-const MessageCard: React.FC<Props> = ({
-  message,
-  onPress,
-  onEdit,
-  onDelete,
-  showActions = false,
-}) => {
-  const statusColor = getStatusColor(message.status);
-  const statusText = getStatusText(message.status);
+  const getPriorityIcon = (priority: string) => {
+    switch (priority.toLowerCase()) {
+      case 'alta':
+        return 'alert-circle';
+      case 'média':
+        return 'alert';
+      case 'baixa':
+        return 'information';
+      default:
+        return 'message';
+    }
+  };
 
   return (
-    <Card style={styles.card} onPress={onPress}>
-      <Card.Content>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+      <Surface style={[styles.container, { borderLeftColor: getPriorityColor(message.priority) }]}>
         <View style={styles.header}>
-          <Text style={styles.sender}>{message.sender}</Text>
-          <View style={styles.statusContainer}>
-            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-            <Text style={[styles.status, { color: statusColor }]}>
-              {statusText}
-            </Text>
+          <View style={styles.titleContainer}>
+            <IconButton
+              icon={getPriorityIcon(message.priority)}
+              size={20}
+              iconColor={getPriorityColor(message.priority)}
+              style={styles.priorityIcon}
+            />
+            <View style={styles.titleWrapper}>
+              <Text style={styles.title} numberOfLines={1}>
+                {message.title}
+              </Text>
+              <View style={styles.senderContainer}>
+                <IconButton
+                  icon="account"
+                  size={16}
+                  iconColor={colors.text.secondary}
+                  style={styles.senderIcon}
+                />
+                <Text style={styles.sender} numberOfLines={1}>
+                  {message.sender}
+                </Text>
+              </View>
+            </View>
           </View>
+          <Text style={styles.timestamp}>
+            {formatDistanceToNow(new Date(message.timestamp), {
+              addSuffix: true,
+              locale: ptBR,
+            })}
+          </Text>
         </View>
 
         <Text style={styles.content} numberOfLines={2}>
           {message.content}
         </Text>
 
-        <Text style={styles.timestamp}>
-          {new Date(message.timestamp).toLocaleString()}
-        </Text>
-
-        {showActions && (
-          <View style={styles.actions}>
-            <IconButton
-              icon="pencil"
-              size={20}
-              onPress={onEdit}
-              iconColor={colors.primary}
-            />
-            <IconButton
-              icon="delete"
-              size={20}
-              onPress={onDelete}
-              iconColor={colors.error}
-            />
+        {message.location && (
+          <View style={styles.footer}>
+            <View style={styles.locationContainer}>
+              <IconButton
+                icon="map-marker"
+                size={16}
+                iconColor={colors.text.secondary}
+                style={styles.locationIcon}
+              />
+              <Text style={styles.location} numberOfLines={1}>
+                {message.location}
+              </Text>
+            </View>
           </View>
         )}
-      </Card.Content>
-    </Card>
+      </Surface>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
+  container: {
     marginBottom: spacing.md,
-    elevation: 2,
+    padding: spacing.md,
+    borderRadius: layout.borderRadius.md,
+    backgroundColor: colors.surface,
+    borderLeftWidth: 4,
+    ...layout.shadow.small,
   },
   header: {
     flexDirection: 'row',
@@ -109,37 +113,67 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
-  sender: {
-    ...typography.subtitle,
-    color: colors.primary,
-  },
-  statusContainer: {
+  titleContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    flex: 1,
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  priorityIcon: {
+    margin: 0,
     marginRight: spacing.xs,
   },
-  status: {
-    ...typography.caption,
+  titleWrapper: {
+    flex: 1,
   },
-  content: {
-    ...typography.body,
-    color: colors.text,
-    marginBottom: spacing.sm,
+  title: {
+    fontSize: typography.fontSize.lg,
+    fontFamily: typography.fontFamily.medium,
+    color: colors.text.primary,
   },
   timestamp: {
-    ...typography.caption,
-    color: colors.text,
-    opacity: 0.7,
+    fontSize: typography.fontSize.xs,
+    color: colors.text.secondary,
+    marginLeft: spacing.sm,
   },
-  actions: {
+  content: {
+    fontSize: typography.fontSize.md,
+    color: colors.text.secondary,
+    marginBottom: spacing.sm,
+    lineHeight: 20,
+  },
+  footer: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: spacing.sm,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  senderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.xs,
+  },
+  senderIcon: {
+    margin: 0,
+    marginRight: spacing.xs,
+  },
+  sender: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    fontFamily: typography.fontFamily.regular,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginLeft: spacing.md,
+  },
+  locationIcon: {
+    margin: 0,
+    marginRight: spacing.xs,
+  },
+  location: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    flex: 1,
   },
 });
 
