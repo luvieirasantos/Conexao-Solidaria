@@ -14,6 +14,7 @@ import SentMessagesScreen from './src/screens/SentMessagesScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import ConnectionStatusScreen from './src/screens/ConnectionStatusScreen';
 import MessageDetailsScreen from './src/screens/MessageDetailsScreen';
+import PerfilScreen from './src/screens/PerfilScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -77,6 +78,11 @@ export default function App() {
             name="MessageDetails"
             component={MessageDetailsScreen}
             options={{ title: 'Detalhes da Mensagem' }}
+          />
+          <Stack.Screen
+            name="Perfil"
+            component={PerfilScreen}
+            options={{ title: 'Meu Perfil' }}
           />
         </Stack.Navigator>
       </NavigationContainer>

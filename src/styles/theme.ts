@@ -30,6 +30,7 @@ export const colors = {
     received: '#2196F3',
     delivered: '#4CAF50',
     error: '#B00020',
+    new: '#1D3557',
   },
   white: '#FFFFFF',
   notification: '#FFD700',
@@ -69,6 +70,7 @@ export const typography = {
     lg: 18,
     xl: 24,
     xxl: 28,
+    xxxl: 36,
   },
   lineHeight: {
     xs: 16,

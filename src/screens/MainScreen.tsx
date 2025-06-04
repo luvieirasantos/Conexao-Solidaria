@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl, StatusBar } from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl, StatusBar, Alert } from 'react-native';
 import { FAB, Text, Surface, IconButton, useTheme } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
@@ -7,6 +7,7 @@ import { Message } from '../types';
 import { colors, spacing, typography, layout } from '../styles/theme';
 import { storage } from '../services/storage';
 import MessageCard from '../components/MessageCard';
+import { bleService } from '../services/bleService';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Main'>;
@@ -15,13 +16,14 @@ type Props = {
 const MainScreen: React.FC<Props> = ({ navigation }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [isBleInitialized, setIsBleInitialized] = useState(false);
   const theme = useTheme();
 
   const loadMessages = useCallback(async () => {
     try {
       const allMessages = await storage.getMessages();
       const receivedMessages = allMessages.filter(
-        (msg) => msg.receiver === 'current_user'
+        (msg) => msg.receiver === 'broadcast'
       );
       setMessages(receivedMessages);
     } catch (error) {
@@ -29,9 +31,44 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, []);
 
+  const initializeBle = useCallback(async () => {
+    try {
+      const initialized = await bleService.initialize();
+      if (initialized) {
+        setIsBleInitialized(true);
+        console.log('BLE inicializado com sucesso');
+        
+        // Iniciar recebimento de mensagens
+        bleService.startReceivingMessages((message: Message) => {
+          console.log('Nova mensagem recebida:', message);
+          loadMessages(); // Recarregar mensagens quando uma nova for recebida
+        });
+      } else {
+        Alert.alert(
+          'Bluetooth Desligado',
+          'Por favor, ligue o Bluetooth para receber mensagens.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Erro ao inicializar BLE:', error);
+      Alert.alert(
+        'Erro',
+        'Não foi possível inicializar o Bluetooth. Verifique as permissões do aplicativo.',
+        [{ text: 'OK' }]
+      );
+    }
+  }, [loadMessages]);
+
   useEffect(() => {
     loadMessages();
-  }, [loadMessages]);
+    initializeBle();
+
+    // Cleanup function
+    return () => {
+      bleService.stopReceivingMessages();
+    };
+  }, [loadMessages, initializeBle]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -53,7 +90,9 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
       />
       <Text style={styles.emptyTitle}>Nenhuma mensagem</Text>
       <Text style={styles.emptySubtitle}>
-        Quando você receber mensagens via Bluetooth, elas aparecerão aqui
+        {isBleInitialized 
+          ? 'Quando você receber mensagens via Bluetooth, elas aparecerão aqui'
+          : 'Ligue o Bluetooth para receber mensagens'}
       </Text>
     </View>
   );
@@ -71,7 +110,7 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
           <IconButton
             icon="bluetooth"
             size={24}
-            iconColor={colors.text.inverse}
+            iconColor={isBleInitialized ? colors.success : colors.error}
             onPress={() => navigation.navigate('ConnectionStatus')}
           />
         </View>
@@ -116,8 +155,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: colors.primary,
-    elevation: 4,
-    ...layout.shadow.medium,
+    paddingTop: StatusBar.currentHeight,
   },
   headerContent: {
     flexDirection: 'row',
@@ -125,7 +163,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    paddingTop: StatusBar.currentHeight + spacing.sm,
   },
   headerTitle: {
     fontSize: typography.fontSize.xl,
@@ -134,7 +171,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: spacing.md,
-    flexGrow: 1,
   },
   emptyContainer: {
     flex: 1,
@@ -146,8 +182,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   emptyTitle: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.medium,
+    fontSize: typography.fontSize.xl,
+    fontFamily: typography.fontFamily.bold,
     color: colors.text.primary,
     marginBottom: spacing.sm,
     textAlign: 'center',
@@ -156,7 +192,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.md,
     color: colors.text.secondary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: typography.lineHeight.md,
   },
   fab: {
     position: 'absolute',

@@ -17,6 +17,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { colors, spacing, typography, layout } from '../styles/theme';
 import { storage } from '../services/storage';
+import axios from 'axios';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Settings'>;
@@ -26,7 +27,6 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [autoConnect, setAutoConnect] = useState(true);
   const [batterySaver, setBatterySaver] = useState(false);
-  const [nickname, setNickname] = useState('Usuário');
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
   const theme = useTheme();
@@ -35,17 +35,10 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     loadSettings();
   }, []);
 
-  useEffect(() => {
-    if (nickname) {
-      console.log('Nickname atualizado:', nickname);
-    }
-  }, [nickname]);
-
   const loadSettings = async () => {
     try {
       const settings = await storage.getSettings();
       if (settings) {
-        setNickname(settings.nickname || 'Usuário');
         setNotificationsEnabled(settings.notificationsEnabled ?? true);
         setAutoConnect(settings.autoConnect ?? true);
         setBatterySaver(settings.batterySaver ?? false);
@@ -58,7 +51,6 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
   const handleSaveSettings = async () => {
     try {
       await storage.saveSettings({
-        nickname,
         notificationsEnabled,
         autoConnect,
         batterySaver,
@@ -72,19 +64,33 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleClearData = async () => {
     console.log('Attempting to clear all data...');
+    setShowClearDialog(false);
     try {
+      const storedUser = await storage.getUser();
+      console.log('User retrieved from local storage:', storedUser);
+
+      if (storedUser && storedUser.id) {
+        try {
+          console.log('Attempting to delete profile from API:', storedUser.id);
+          await axios.delete(`https://api-deploy-1-0xst.onrender.com/api/perfis/${storedUser.id}`);
+          console.log('Profile deleted from API successfully.');
+        } catch (apiError) {
+          console.error('Erro ao deletar perfil da API:', apiError);
+          Alert.alert('Aviso', 'Não foi possível deletar o perfil do servidor. Dados locais serão apagados.');
+        }
+      }
+
       await storage.clearAll();
-      console.log('Data cleared successfully.');
-      setNickname('Usuário');
+      console.log('Local data cleared successfully.');
+
       setNotificationsEnabled(true);
       setAutoConnect(true);
       setBatterySaver(false);
-      Alert.alert('Sucesso', 'Todos os dados foram apagados com sucesso.');
-      setShowClearDialog(false);
+
+      Alert.alert('Sucesso', 'Todos os dados (locais e do servidor, se aplicável) foram apagados.');
     } catch (error) {
-      console.error('Erro ao apagar dados:', error);
+      console.error('Erro geral ao apagar dados:', error);
       Alert.alert('Erro', 'Não foi possível apagar os dados.');
-      setShowClearDialog(false);
     }
   };
 
@@ -118,12 +124,12 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         <Surface style={styles.sectionContainer}>
           <List.Section>
             <List.Subheader style={styles.sectionTitle}>Perfil</List.Subheader>
-            <TextInput
-              label="Seu nome"
-              value={nickname}
-              onChangeText={setNickname}
-              style={styles.input}
-              mode="outlined"
+            <List.Item
+              title="Gerenciar Perfil"
+              description="Edite seu nome, tipo sanguíneo, alergias, etc."
+              left={(props) => <List.Icon {...props} icon="account" />}
+              onPress={() => navigation.navigate('Perfil')}
+              style={{ paddingHorizontal: spacing.lg }}
             />
           </List.Section>
         </Surface>
@@ -215,42 +221,6 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <Portal>
-        <Dialog
-          visible={isEditingNickname}
-          onDismiss={() => setIsEditingNickname(false)}
-          style={styles.dialog}
-        >
-          <Dialog.Title>Editar Nome</Dialog.Title>
-          <Dialog.Content>
-            <TextInput
-              label="Seu nome"
-              value={nickname}
-              onChangeText={setNickname}
-              mode="outlined"
-              style={styles.input}
-            />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setIsEditingNickname(false)}>Cancelar</Button>
-            <Button onPress={async () => {
-              try {
-                const settings = {
-                  notificationsEnabled,
-                  autoConnect,
-                  batterySaver,
-                  nickname,
-                };
-                await storage.saveSettings(settings);
-                setIsEditingNickname(false);
-                Alert.alert('Sucesso', 'Nome atualizado com sucesso!');
-              } catch (error) {
-                console.error('Error saving nickname:', error);
-                Alert.alert('Erro', 'Não foi possível salvar o nome.');
-              }
-            }}>Salvar</Button>
-          </Dialog.Actions>
-        </Dialog>
-
         <Dialog
           visible={showClearDialog}
           onDismiss={() => setShowClearDialog(false)}

@@ -98,6 +98,60 @@ export default function MessageDetailsScreen() {
         <View style={styles.messageContainer}>
           <Text style={styles.messageText}>{message.content}</Text>
         </View>
+
+        {/* Seção de Dados do Remetente */}
+        {message.senderProfile && (
+          <Surface style={styles.senderProfileContainer}>
+            <Text style={styles.senderProfileTitle}>Dados do Remetente</Text>
+
+            {message.senderProfile.bloodType && (
+              <View style={styles.senderProfileRow}>
+                <Text style={styles.senderProfileLabel}>Tipo Sanguíneo:</Text>
+                <Text style={styles.senderProfileValue}>{message.senderProfile.bloodType}</Text>
+              </View>
+            )}
+
+            {message.senderProfile.allergies && (
+              <View style={styles.senderProfileRow}>
+                <Text style={styles.senderProfileLabel}>Alergias:</Text>
+                <Text style={styles.senderProfileValue}>{message.senderProfile.allergies}</Text>
+              </View>
+            )}
+
+            {message.senderProfile.medicalConditions && (
+              <View style={styles.senderProfileRow}>
+                <Text style={styles.senderProfileLabel}>Condições Médicas:</Text>
+                <Text style={styles.senderProfileValue}>{message.senderProfile.medicalConditions}</Text>
+              </View>
+            )}
+
+            {message.senderProfile.continuousMedication && (
+              <View style={styles.senderProfileRow}>
+                <Text style={styles.senderProfileLabel}>Medicação Contínua:</Text>
+                <Text style={styles.senderProfileValue}>{message.senderProfile.continuousMedication}</Text>
+              </View>
+            )}
+
+            {(message.senderProfile.emergencyContactName || message.senderProfile.emergencyContactPhone) && (
+              <View style={styles.senderProfileRow}>
+                <Text style={styles.senderProfileLabel}>Contato de Emergência:</Text>
+                <Text style={styles.senderProfileValue}>
+                  {message.senderProfile.emergencyContactName}
+                  {message.senderProfile.emergencyContactName && message.senderProfile.emergencyContactPhone ? ' - ' : ''}
+                  {message.senderProfile.emergencyContactPhone}
+                </Text>
+              </View>
+            )}
+
+            {message.senderProfile.observations && (
+              <View style={styles.senderProfileRow}>
+                <Text style={styles.senderProfileLabel}>Observações:</Text>
+                <Text style={styles.senderProfileValue}>{message.senderProfile.observations}</Text>
+              </View>
+            )}
+          </Surface>
+        )}
+
       </Surface>
     </ScrollView>
   );
@@ -153,11 +207,41 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: spacing.lg,
     borderRadius: layout.borderRadius.md,
+    marginBottom: spacing.lg,
   },
   messageText: {
     fontFamily: typography.fontFamily.regular,
     fontSize: typography.fontSize.lg,
     color: colors.text.primary,
     lineHeight: typography.lineHeight.lg,
+  },
+  senderProfileContainer: {
+    marginTop: spacing.md,
+    padding: spacing.lg,
+    borderRadius: layout.borderRadius.lg,
+    backgroundColor: colors.surface,
+    ...layout.shadow.small,
+  },
+  senderProfileTitle: {
+    fontSize: typography.fontSize.xl,
+    fontFamily: typography.fontFamily.bold,
+    color: colors.text.primary,
+    marginBottom: spacing.lg,
+  },
+  senderProfileRow: {
+    flexDirection: 'row',
+    marginBottom: spacing.sm,
+  },
+  senderProfileLabel: {
+    fontFamily: typography.fontFamily.medium,
+    fontSize: typography.fontSize.md,
+    color: colors.text.secondary,
+    width: 150,
+  },
+  senderProfileValue: {
+    flex: 1,
+    fontFamily: typography.fontFamily.regular,
+    fontSize: typography.fontSize.md,
+    color: colors.text.primary,
   },
 }); 

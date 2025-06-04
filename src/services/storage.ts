@@ -1,13 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Message, User, Settings } from '../types';
 
-interface Settings {
-  notificationsEnabled: boolean;
-  autoConnect: boolean;
-  batterySaver: boolean;
-  nickname: string;
-}
-
 const STORAGE_KEYS = {
   USER: '@user',
   MESSAGES: '@messages',
@@ -18,20 +11,46 @@ class StorageService {
   // User
   async saveUser(user: User): Promise<void> {
     try {
+      console.log('Saving user profile:', user);
       await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+      console.log('User profile saved successfully.');
     } catch (error) {
-      console.error('Error saving user:', error);
+      console.error('Error saving user profile:', error);
       throw error;
     }
   }
 
   async getUser(): Promise<User | null> {
     try {
-      const user = await AsyncStorage.getItem(STORAGE_KEYS.USER);
-      return user ? JSON.parse(user) : null;
+      const userJson = await AsyncStorage.getItem(STORAGE_KEYS.USER);
+      const user = userJson ? JSON.parse(userJson) : null;
+      console.log('User profile retrieved:', user);
+      // Retorna um objeto User vazio se não houver usuário salvo, com nickname padrão
+      return user || { 
+        nickname: 'Usuário',
+        bloodType: '',
+        allergies: '',
+        medicalConditions: '',
+        emergencyContactName: '',
+        emergencyContactPhone: '',
+        continuousMedication: '',
+        observations: '',
+        avatarUri: undefined,
+       };
     } catch (error) {
-      console.error('Error getting user:', error);
-      return null;
+      console.error('Error getting user profile:', error);
+      // Retorna um objeto User vazio com nickname padrão em caso de erro
+      return { 
+        nickname: 'Usuário',
+        bloodType: '',
+        allergies: '',
+        medicalConditions: '',
+        emergencyContactName: '',
+        emergencyContactPhone: '',
+        continuousMedication: '',
+        observations: '',
+        avatarUri: undefined,
+       };
     }
   }
 
@@ -60,7 +79,9 @@ class StorageService {
   // Configurações
   async saveSettings(settings: Settings): Promise<void> {
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+      // Certifica-se de não salvar o nickname aqui
+      const { notificationsEnabled, autoConnect, batterySaver } = settings;
+      await AsyncStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify({ notificationsEnabled, autoConnect, batterySaver }));
     } catch (error) {
       console.error('Error saving settings:', error);
       throw error;
@@ -70,10 +91,20 @@ class StorageService {
   async getSettings(): Promise<Settings> {
     try {
       const settingsJson = await AsyncStorage.getItem(STORAGE_KEYS.SETTINGS);
-      return settingsJson ? JSON.parse(settingsJson) : { nickname: 'Usuário' };
+      // Retorna um objeto Settings com valores padrão, sem nickname
+      return settingsJson ? JSON.parse(settingsJson) : {
+        notificationsEnabled: true,
+        autoConnect: true,
+        batterySaver: false,
+      };
     } catch (error) {
       console.error('Error getting settings:', error);
-      return { nickname: 'Usuário' };
+       // Retorna um objeto Settings com valores padrão em caso de erro
+      return {
+        notificationsEnabled: true,
+        autoConnect: true,
+        batterySaver: false,
+      };
     }
   }
 

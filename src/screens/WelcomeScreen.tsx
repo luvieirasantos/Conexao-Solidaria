@@ -28,6 +28,14 @@ export default function WelcomeScreen() {
       <View style={styles.buttonContainer}>
         <Button
           mode="contained"
+          onPress={() => navigation.navigate('Perfil')}
+          style={[styles.button, styles.profileButton]}
+          labelStyle={styles.buttonLabel}
+        >
+          Meu Perfil
+        </Button>
+        <Button
+          mode="contained"
           onPress={() => navigation.navigate('SentMessages')}
           style={styles.button}
           labelStyle={styles.buttonLabel}
@@ -90,6 +98,9 @@ const styles = StyleSheet.create({
   settingsButton: {
     backgroundColor: 'transparent',
     borderColor: colors.primary,
+  },
+  profileButton: {
+    backgroundColor: colors.secondary,
   },
   buttonLabel: {
     fontFamily: typography.fontFamily.medium,

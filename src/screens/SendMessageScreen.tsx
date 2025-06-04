@@ -8,80 +8,114 @@ import {
   IconButton,
   SegmentedButtons,
   HelperText,
+  Chip,
 } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { colors, spacing, typography, layout } from '../styles/theme';
 import { storage } from '../services/storage';
-import { Message } from '../types';
+import { Message, User } from '../types';
+import { useNavigation } from '@react-navigation/native';
+import { bleService, BleService } from '../services/bleService';
+import { Device } from 'react-native-ble-plx';
 
-type Props = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'SendMessage'>;
-};
+type SendMessageScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SendMessage'>;
 
-const SendMessageScreen: React.FC<Props> = ({ navigation }) => {
+const SendMessageScreen: React.FC = () => {
+  const navigation = useNavigation<SendMessageScreenNavigationProp>();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [priority, setPriority] = useState<'baixa' | 'média' | 'alta'>('média');
   const [location, setLocation] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
-  const [senderName, setSenderName] = useState('');
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [bleStatus, setBleStatus] = useState<'idle' | 'scanning' | 'sending'>('idle');
 
   useEffect(() => {
-    loadUserSettings();
+    loadUser();
   }, []);
 
-  const loadUserSettings = async () => {
+  const loadUser = async () => {
     try {
-      const settings = await storage.getSettings();
-      setSenderName(settings.nickname || 'Usuário');
+      const user = await storage.getUser();
+      setCurrentUser(user);
     } catch (error) {
-      console.error('Error loading user settings:', error);
-      setSenderName('Usuário');
+      console.error('Erro ao carregar usuário para envio de mensagem:', error);
     }
   };
 
   const handleSend = async () => {
     if (!title.trim() || !content.trim()) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios.');
+      setError('Por favor, preencha todos os campos obrigatórios (Título e Mensagem)');
       return;
     }
 
+    if (!currentUser) {
+      Alert.alert('Erro', 'Não foi possível carregar as informações do remetente. Tente novamente.');
+      return;
+    }
+
+    setError('');
+
     try {
       setIsSending(true);
-      const settings = await storage.getSettings();
+      setBleStatus('scanning');
+
       const message: Message = {
         id: Date.now().toString(),
-        title,
-        content,
+        title: title.trim(),
+        content: content.trim(),
         priority,
-        location,
-        sender: settings.nickname || 'Usuário',
+        location: location.trim() || undefined,
+        sender: currentUser.nickname || 'Usuário',
         receiver: 'broadcast',
         timestamp: new Date().toISOString(),
         status: 'pending',
+        senderProfile: {
+          bloodType: currentUser.bloodType || '',
+          allergies: currentUser.allergies || '',
+          medicalConditions: currentUser.medicalConditions || '',
+          emergencyContactName: currentUser.emergencyContactName || '',
+          emergencyContactPhone: currentUser.emergencyContactPhone || '',
+          continuousMedication: currentUser.continuousMedication || '',
+          observations: currentUser.observations || '',
+          avatarUri: currentUser.avatarUri || undefined,
+        },
       };
 
-      console.log('Enviando mensagem:', message);
+      console.log('Criando mensagem:', message);
       await storage.saveMessage(message);
-      console.log('Mensagem salva com sucesso');
+      console.log('Mensagem salva localmente.');
 
-      // Limpar os campos após enviar
-      setTitle('');
-      setContent('');
-      setLocation('');
-      setPriority('média');
+      console.log('Iniciando scan BLE para enviar mensagem...');
+      bleService.startScan(
+        (device: Device) => {
+          console.log('Dispositivo BLE encontrado durante o scan:', device.name || device.id);
+        },
+        async () => {
+          console.log('Scan BLE concluído.');
+          setBleStatus('sending');
+          await bleService.sendMessageToDevices(message);
+          setBleStatus('idle');
+          setTitle('');
+          setContent('');
+          setLocation('');
+          setPriority('média');
 
-      Alert.alert('Sucesso', 'Mensagem enviada com sucesso!');
-      navigation.goBack();
+          Alert.alert('Sucesso', 'Mensagem salva localmente e tentativa de envio BLE iniciada.');
+          navigation.goBack();
+        }
+      );
     } catch (error) {
-      console.error('Error sending message:', error);
-      Alert.alert('Erro', 'Não foi possível enviar a mensagem. Tente novamente.');
+      console.error('Error handling message send via BLE:', error);
+      setError('Ocorreu um erro ao tentar enviar a mensagem via BLE.');
     } finally {
       setIsSending(false);
     }
   };
+
+  const priorityOptions = ['baixa', 'média', 'alta'];
 
   return (
     <KeyboardAvoidingView
@@ -111,6 +145,7 @@ const SendMessageScreen: React.FC<Props> = ({ navigation }) => {
                   color={colors.text.secondary}
                 />
               }
+              error={!!error && !title.trim()}
             />
           </View>
 
@@ -119,10 +154,10 @@ const SendMessageScreen: React.FC<Props> = ({ navigation }) => {
               label="Mensagem"
               value={content}
               onChangeText={setContent}
-              style={styles.input}
+              style={[styles.input, styles.messageInput]}
               mode="outlined"
               multiline
-              numberOfLines={4}
+              numberOfLines={6}
               maxLength={500}
               right={
                 <TextInput.Icon
@@ -130,34 +165,7 @@ const SendMessageScreen: React.FC<Props> = ({ navigation }) => {
                   color={colors.text.secondary}
                 />
               }
-            />
-          </View>
-
-          <View style={styles.priorityContainer}>
-            <Text style={styles.priorityLabel}>Prioridade</Text>
-            <SegmentedButtons
-              value={priority}
-              onValueChange={setPriority}
-              buttons={[
-                {
-                  value: 'baixa',
-                  label: 'Baixa',
-                  icon: 'information',
-                  style: { backgroundColor: priority === 'baixa' ? colors.success : undefined },
-                },
-                {
-                  value: 'média',
-                  label: 'Média',
-                  icon: 'alert',
-                  style: { backgroundColor: priority === 'média' ? colors.warning : undefined },
-                },
-                {
-                  value: 'alta',
-                  label: 'Alta',
-                  icon: 'alert-circle',
-                  style: { backgroundColor: priority === 'alta' ? colors.error : undefined },
-                },
-              ]}
+              error={!!error && !content.trim()}
             />
           </View>
 
@@ -178,17 +186,51 @@ const SendMessageScreen: React.FC<Props> = ({ navigation }) => {
             />
           </View>
 
+          <View style={styles.priorityContainer}>
+            <Text style={styles.priorityLabel}>Prioridade</Text>
+            <View style={styles.priorityChips}>
+              {priorityOptions.map((option) => (
+                <Chip
+                  key={option}
+                  selected={priority === option}
+                  onPress={() => setPriority(option as 'baixa' | 'média' | 'alta')}
+                  selectedColor={colors.text.inverse}
+                  style={[
+                    styles.priorityChip,
+                    {
+                      backgroundColor: priority === option ? colors[option === 'alta' ? 'error' : option === 'média' ? 'warning' : 'success'] : colors.background,
+                    }
+                  ]}
+                  textStyle={[
+                    styles.chipText,
+                    {
+                      color: priority === option ? colors.text.inverse : colors.text.primary
+                    }
+                  ]}
+                >
+                  {option.charAt(0).toUpperCase() + option.slice(1)}
+                </Chip>
+              ))}
+            </View>
+          </View>
+
           {error ? (
             <HelperText type="error" visible={!!error}>
               {error}
             </HelperText>
           ) : null}
 
+          {bleStatus !== 'idle' && (
+            <Text style={styles.bleStatusText}>
+              {bleStatus === 'scanning' ? 'Escaneando dispositivos...' : 'Enviando mensagem via BLE...'}
+            </Text>
+          )}
+
           <View style={styles.buttonContainer}>
             <Button
               mode="outlined"
               onPress={() => navigation.goBack()}
-              style={styles.button}
+              style={styles.actionButton}
               labelStyle={styles.buttonLabel}
             >
               Cancelar
@@ -196,12 +238,12 @@ const SendMessageScreen: React.FC<Props> = ({ navigation }) => {
             <Button
               mode="contained"
               onPress={handleSend}
-              style={[styles.button, styles.sendButton]}
+              style={[styles.actionButton, styles.sendButton]}
               labelStyle={styles.buttonLabel}
-              loading={isSending}
-              disabled={isSending}
+              loading={isSending || bleStatus !== 'idle'}
+              disabled={isSending || bleStatus !== 'idle' || !currentUser}
             >
-              Enviar
+              {isSending || bleStatus !== 'idle' ? 'Enviando...' : 'Enviar Mensagem'}
             </Button>
           </View>
         </Surface>
@@ -214,16 +256,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    padding: layout.padding.screen,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    padding: layout.screenPadding,
   },
   formContainer: {
-    padding: layout.cardPadding,
+    padding: layout.padding.screen,
     borderRadius: layout.borderRadius.lg,
     backgroundColor: colors.surface,
     ...layout.shadow.medium,
@@ -240,7 +282,11 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: colors.surface,
-    height: layout.inputHeight,
+    height: layout.input.height,
+  },
+  messageInput: {
+    height: layout.input.height * 2,
+    textAlignVertical: 'top',
   },
   priorityContainer: {
     marginBottom: spacing.lg,
@@ -251,23 +297,47 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     marginBottom: spacing.sm,
   },
+  priorityChips: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  priorityChip: {
+    flex: 1,
+    justifyContent: 'center',
+    borderRadius: layout.borderRadius.md,
+    paddingVertical: spacing.sm,
+  },
+  chipText: {
+    fontSize: typography.fontSize.sm,
+    textAlign: 'center',
+  },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: spacing.lg,
+    gap: spacing.md,
   },
-  button: {
+  actionButton: {
     flex: 1,
-    marginHorizontal: spacing.xs,
-    height: layout.buttonHeight,
-    borderRadius: layout.borderRadius.md,
+    height: layout.button.height,
+    borderRadius: layout.borderRadius.lg,
+    justifyContent: 'center',
   },
   sendButton: {
     backgroundColor: colors.primary,
   },
   buttonLabel: {
-    fontSize: typography.fontSize.md,
     fontFamily: typography.fontFamily.medium,
+    fontSize: typography.fontSize.lg,
+    textAlign: 'center',
+  },
+  bleStatusText: {
+    textAlign: 'center',
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+    fontSize: typography.fontSize.md,
+    color: colors.text.secondary,
   },
 });
 
