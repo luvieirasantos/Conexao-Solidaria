@@ -87,6 +87,8 @@ const PerfilScreen: React.FC = () => {
        console.log('Perfil inicializado com dados padrão (erro geral):');
     } finally {
       setLoading(false);
+
+      //comentario para teste
     }
   };
 
