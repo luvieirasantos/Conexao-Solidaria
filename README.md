@@ -1,6 +1,11 @@
 # Conexão Solidária
 
+Em eventos extremos, sabemos que a primeira coisa a ser afetada são os meios de comunicação, sao eles, wifi, dados moveis e geralmente a energia, pensando nisso, desenvolvemos:
 Um aplicativo mobile para comunicação offline via rede mesh BLE, focado em fornecer uma ferramenta de comunicação resiliente para comunidades e equipes de resposta em áreas afetadas por eventos extremos, onde a infraestrutura de comunicação tradicional pode estar comprometida.
+
+# Video youtube
+
+https://youtu.be/qCBpiV0b87g
 
 ## Funcionalidades Principais
 
