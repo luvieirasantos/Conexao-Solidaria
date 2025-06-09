@@ -30,7 +30,7 @@ https://youtu.be/qCBpiV0b87g
 
 1. Clone o repositório:
 ```bash
-git clone [URL do seu repositório]
+git clone https://github.com/luvieirasantos/Conexao-Solidaria
 cd conexao-solidaria
 ```
 
